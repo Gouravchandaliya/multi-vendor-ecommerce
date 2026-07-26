@@ -1,0 +1,8 @@
+/* Tailwind's three directive layers:
+   - base:       normalizes browser defaults (like a modern CSS reset)
+   - components: reusable component classes (buttons, cards, etc.)
+   - utilities:  all the utility classes (flex, p-4, text-lg, etc.)
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
