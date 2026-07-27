@@ -90,9 +90,39 @@ JSON Schema:
       throw new ApiError(500, 'Invalid or empty response received from AI provider.');
     }
 
-    // Clean potential markdown wrap if any
-    const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleanJson);
+    // Clean potential markdown codeblock wrapping
+    let cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const firstBrace = cleanJson.indexOf('{');
+    const lastBrace = cleanJson.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanJson);
+    } catch {
+      // Robust fallback: sanitize unescaped raw control characters (newlines/tabs inside JSON string fields)
+      try {
+        const sanitized = cleanJson.replace(/[\u0000-\u001F]+/g, (match) => {
+          if (match === '\n') return '\\n';
+          if (match === '\r') return '\\r';
+          if (match === '\t') return '\\t';
+          return '';
+        });
+        parsed = JSON.parse(sanitized);
+      } catch {
+        // Fallback if JSON parsing still fails: extract description via regex
+        const descMatch = rawText.match(/"description"\s*:\s*"([^"]+)"/i);
+        const titleMatch = rawText.match(/"title"\s*:\s*"([^"]+)"/i);
+        parsed = {
+          title: titleMatch ? titleMatch[1] : name,
+          description: descMatch ? descMatch[1] : rawText.replace(/[{}"[\]]/g, '').trim(),
+          highlights: [],
+          keywords: [],
+        };
+      }
+    }
 
     return {
       title: parsed.title || name,
