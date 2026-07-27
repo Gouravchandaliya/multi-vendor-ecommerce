@@ -9,6 +9,8 @@ import {
   selectSellerOrderError,
 } from '../../features/seller/sellerOrderSlice';
 import Alert from '../../components/common/Alert';
+import StatusBadge from '../../components/common/StatusBadge';
+import EmptyState from '../../components/common/EmptyState';
 import { PageSpinner } from '../../components/common/Spinner';
 
 const STATUS_TABS = [
@@ -103,30 +105,24 @@ const SellerOrdersPage = () => {
       {isLoading && orders.length === 0 ? (
         <PageSpinner />
       ) : orders.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center space-y-4 shadow-sm max-w-md mx-auto">
-          <span className="text-5xl">📦</span>
-          <h2 className="text-lg font-bold text-gray-900">No orders found</h2>
-          <p className="text-xs text-gray-500">
-            No orders match the selected filter status or search query.
-          </p>
-        </div>
+        <EmptyState
+          icon="📦"
+          title="No seller orders found"
+          message="No customer orders match the selected filter status or search query."
+        />
       ) : (
         <div className="space-y-4">
           {orders.map((ord) => (
             <div
               key={ord._id}
-              className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-gray-300 transition"
+              className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-blue-200 transition"
             >
               {/* Left Order Information */}
               <div className="space-y-3 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-extrabold text-sm text-gray-900">{ord.orderNumber}</span>
-                  <span className="px-2.5 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold uppercase rounded-full">
-                    ✓ {ord.paymentStatus}
-                  </span>
-                  <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold uppercase rounded-full">
-                    Status: {ord.sellerFulfillmentStatus}
-                  </span>
+                  <StatusBadge status={ord.paymentStatus} />
+                  <StatusBadge status={ord.sellerFulfillmentStatus} />
                 </div>
 
                 <div className="text-xs text-gray-500 flex flex-wrap gap-4">

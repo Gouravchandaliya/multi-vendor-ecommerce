@@ -19,6 +19,7 @@ import {
 } from '../../features/cart/cartSlice';
 import { selectIsLoggedIn } from '../../features/auth/authSlice';
 import Alert from '../../components/common/Alert';
+import EmptyState from '../../components/common/EmptyState';
 import { PageSpinner } from '../../components/common/Spinner';
 
 const CartPage = () => {
@@ -119,19 +120,13 @@ const CartPage = () => {
       <Alert type="success" message={success} onClose={() => dispatch(clearCartSuccess())} />
 
       {rawItems.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center space-y-4 shadow-sm max-w-md mx-auto">
-          <span className="text-6xl">🛒</span>
-          <h2 className="text-xl font-extrabold text-gray-900">Your cart is empty</h2>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Looks like you haven't added anything to your cart yet. Explore our multi-vendor marketplace to discover great products!
-          </p>
-          <Link
-            to="/products"
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition"
-          >
-            Continue Shopping &rarr;
-          </Link>
-        </div>
+        <EmptyState
+          icon="🛒"
+          title="Your cart is empty"
+          message="Looks like you haven't added anything to your cart yet. Explore our multi-vendor marketplace to discover great products!"
+          actionLabel="Continue Shopping"
+          actionTo="/products"
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           
@@ -201,6 +196,7 @@ const CartPage = () => {
                               onClick={() => handleQtyChange(prod._id || item.productId, item.quantity - 1, prod.stock)}
                               disabled={item.quantity <= 1}
                               className="px-3 py-1 text-gray-600 hover:bg-gray-200 font-bold text-xs disabled:opacity-40"
+                              aria-label="Decrease quantity"
                             >
                               -
                             </button>
@@ -209,6 +205,7 @@ const CartPage = () => {
                               onClick={() => handleQtyChange(prod._id || item.productId, item.quantity + 1, prod.stock)}
                               disabled={prod.stock && item.quantity >= prod.stock}
                               className="px-3 py-1 text-gray-600 hover:bg-gray-200 font-bold text-xs disabled:opacity-40"
+                              aria-label="Increase quantity"
                             >
                               +
                             </button>
@@ -224,6 +221,7 @@ const CartPage = () => {
                             onClick={() => handleRemove(prod._id || item.productId)}
                             className="text-gray-400 hover:text-red-600 transition p-1 text-base"
                             title="Remove item"
+                            aria-label="Remove item from cart"
                           >
                             🗑️
                           </button>

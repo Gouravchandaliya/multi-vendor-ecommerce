@@ -45,6 +45,7 @@ const Navbar = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    setIsMobileMenuOpen(false);
     if (searchTerm.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
     } else {
@@ -53,6 +54,7 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
+    setIsMobileMenuOpen(false);
     await dispatch(logoutUser());
     navigate('/login', { replace: true });
   };
@@ -72,7 +74,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
         {/* Brand Logo & Name */}
-        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+        <Link to="/" className="flex items-center gap-2 flex-shrink-0" aria-label="MarketX Home">
           <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-md">
             M
           </span>
@@ -89,9 +91,11 @@ const Navbar = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-4 pr-10 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50"
+            aria-label="Search products"
           />
           <button
             type="submit"
+            aria-label="Submit search"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition"
             title="Search"
           >
@@ -100,13 +104,14 @@ const Navbar = () => {
         </form>
 
         {/* Action Controls & Navigation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           
           {/* Wishlist Link */}
           <Link
             to="/wishlist"
             className="relative text-xl p-1.5 hover:bg-gray-100 rounded-xl transition"
             title="Wishlist"
+            aria-label="View Wishlist"
           >
             <span>🤍</span>
             {wishlistCount > 0 && (
@@ -121,6 +126,7 @@ const Navbar = () => {
             to="/cart"
             className="relative text-xl p-1.5 hover:bg-gray-100 rounded-xl transition"
             title="Shopping Cart"
+            aria-label="View Shopping Cart"
           >
             <span>🛒</span>
             {cartItemCount > 0 && (
@@ -144,17 +150,17 @@ const Navbar = () => {
 
               <Link
                 to={getDashboardPath()}
-                className="px-3.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-xl text-sm font-semibold transition flex items-center gap-2"
+                className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5"
               >
                 <span>Dashboard</span>
-                <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs capitalize hidden lg:inline">
+                <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-[10px] uppercase font-bold hidden lg:inline">
                   {userRole}
                 </span>
               </Link>
 
               <button
                 onClick={handleLogout}
-                className="px-3.5 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition hidden sm:block"
+                className="px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 rounded-xl transition hidden sm:block"
               >
                 Sign Out
               </button>
@@ -163,25 +169,26 @@ const Navbar = () => {
             <div className="flex items-center gap-2">
               <Link
                 to="/login"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition"
+                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-gray-700 hover:text-blue-600 transition"
               >
                 Sign In
               </Link>
               <Link
                 to="/register"
-                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition"
+                className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition"
               >
                 Sign Up
               </Link>
             </div>
           )}
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setIsMobileMenuOpen((p) => !p)}
-            className="p-2 text-gray-600 hover:text-gray-900 sm:hidden"
+            className="p-2 text-gray-600 hover:text-gray-900 sm:hidden border border-gray-200 rounded-xl"
+            aria-label="Toggle mobile menu"
           >
-            ☰
+            {isMobileMenuOpen ? '✕' : '☰'}
           </button>
 
         </div>
@@ -206,6 +213,7 @@ const Navbar = () => {
               onMouseEnter={() => setIsCatOpen(true)}
               onClick={() => setIsCatOpen((p) => !p)}
               className="flex items-center gap-1 hover:text-blue-600 transition"
+              aria-expanded={isCatOpen}
             >
               Categories ▾
             </button>
@@ -237,24 +245,43 @@ const Navbar = () => {
 
       {/* Mobile Drawer */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden border-t border-gray-200 bg-white p-4 space-y-3">
+        <div className="sm:hidden border-t border-gray-200 bg-white p-4 space-y-4 shadow-lg">
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder="Search products, categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-4 pr-10 py-2 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              aria-label="Mobile search"
             />
-            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2">🔍</button>
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</button>
           </form>
 
-          <nav className="flex flex-col gap-2 pt-2 text-sm font-semibold text-gray-700">
-            <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
-            <Link to="/products" onClick={() => setIsMobileMenuOpen(false)}>All Products</Link>
-            <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)}>Shopping Cart ({cartItemCount})</Link>
-            <Link to="/wishlist" onClick={() => setIsMobileMenuOpen(false)}>Wishlist ({wishlistCount})</Link>
-            <Link to="/become-seller" onClick={() => setIsMobileMenuOpen(false)} className="text-blue-600">Become a Seller</Link>
+          <nav className="flex flex-col gap-3 text-xs font-bold text-gray-700 divide-y divide-gray-100">
+            <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="pt-1 hover:text-blue-600">🏠 Home</Link>
+            <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} className="pt-2 hover:text-blue-600">🏷️ All Products</Link>
+            <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)} className="pt-2 hover:text-blue-600">🛒 Shopping Cart ({cartItemCount})</Link>
+            <Link to="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="pt-2 hover:text-blue-600">🤍 Wishlist ({wishlistCount})</Link>
+            
+            {isLoggedIn && (
+              <>
+                <Link to="/account/orders" onClick={() => setIsMobileMenuOpen(false)} className="pt-2 hover:text-blue-600">📦 My Orders</Link>
+                <Link to={getDashboardPath()} onClick={() => setIsMobileMenuOpen(false)} className="pt-2 text-blue-600">📊 Control Center ({userRole})</Link>
+                <button onClick={handleLogout} className="pt-2 text-left text-red-600 font-bold">Sign Out</button>
+              </>
+            )}
+
+            {!isLoggedIn && (
+              <div className="pt-3 flex items-center gap-2">
+                <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 py-2 text-center border border-gray-200 rounded-xl text-gray-700 font-bold">
+                  Sign In
+                </Link>
+                <Link to="/register" onClick={() => setIsMobileMenuOpen(false)} className="flex-1 py-2 text-center bg-blue-600 text-white rounded-xl font-bold">
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

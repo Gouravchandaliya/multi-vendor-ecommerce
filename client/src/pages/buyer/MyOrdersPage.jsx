@@ -9,14 +9,16 @@ import {
   selectOrderError,
 } from '../../features/order/orderSlice';
 import Alert from '../../components/common/Alert';
+import StatusBadge from '../../components/common/StatusBadge';
+import EmptyState from '../../components/common/EmptyState';
 import { PageSpinner } from '../../components/common/Spinner';
 
 const MyOrdersPage = () => {
-  const dispatch  = useDispatch();
-  const orders    = useSelector(selectMyOrders);
+  const dispatch   = useDispatch();
+  const orders     = useSelector(selectMyOrders);
   const pagination = useSelector(selectOrderPagination);
-  const isLoading = useSelector(selectOrderLoading);
-  const error     = useSelector(selectOrderError);
+  const isLoading  = useSelector(selectOrderLoading);
+  const error      = useSelector(selectOrderError);
 
   const [page, setPage] = useState(1);
 
@@ -38,34 +40,24 @@ const MyOrdersPage = () => {
       <Alert type="error" message={error} />
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center space-y-4 shadow-sm max-w-md mx-auto">
-          <span className="text-6xl">🛍️</span>
-          <h2 className="text-xl font-extrabold text-gray-900">No orders placed yet</h2>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            When you complete purchases on MarketX, your order history will appear here.
-          </p>
-          <Link
-            to="/products"
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition"
-          >
-            Start Shopping &rarr;
-          </Link>
-        </div>
+        <EmptyState
+          icon="🛍️"
+          title="No orders placed yet"
+          message="When you complete purchases on MarketX, your order history and tracking will appear here."
+          actionLabel="Start Shopping"
+          actionTo="/products"
+        />
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <div key={order._id} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-gray-300 transition">
+            <div key={order._id} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-blue-200 transition">
               
               {/* Order Basic Summary */}
               <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-extrabold text-sm text-gray-900">{order.orderNumber}</span>
-                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-[10px] font-bold uppercase rounded-full">
-                    ✓ {order.paymentStatus}
-                  </span>
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-bold uppercase rounded-full">
-                    {order.orderStatus}
-                  </span>
+                  <StatusBadge status={order.paymentStatus} />
+                  <StatusBadge status={order.orderStatus} />
                 </div>
 
                 <div className="text-xs text-gray-500 flex flex-wrap gap-4">

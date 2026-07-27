@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router';
+import { Link } from 'react-router';
 import {
   fetchWishlist,
   removeFromWishlist,
@@ -11,11 +11,11 @@ import {
 } from '../../features/wishlist/wishlistSlice';
 import { selectIsLoggedIn } from '../../features/auth/authSlice';
 import Alert from '../../components/common/Alert';
+import EmptyState from '../../components/common/EmptyState';
 import { PageSpinner } from '../../components/common/Spinner';
 
 const WishlistPage = () => {
   const dispatch   = useDispatch();
-  const navigate   = useNavigate();
   const isLoggedIn = useSelector(selectIsLoggedIn);
 
   const products  = useSelector(selectWishlistProducts);
@@ -70,19 +70,13 @@ const WishlistPage = () => {
       <Alert type="error" message={error} />
 
       {products.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center space-y-4 shadow-sm max-w-md mx-auto">
-          <span className="text-6xl">🤍</span>
-          <h2 className="text-xl font-extrabold text-gray-900">Your wishlist is empty</h2>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Save items you like while browsing so you can easily find them later or move them to your cart.
-          </p>
-          <Link
-            to="/products"
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition"
-          >
-            Explore Products &rarr;
-          </Link>
-        </div>
+        <EmptyState
+          icon="🤍"
+          title="Your wishlist is empty"
+          message="Save items you like while browsing so you can easily find them later or move them to your shopping cart."
+          actionLabel="Explore Products"
+          actionTo="/products"
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map((product) => {
