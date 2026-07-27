@@ -40,6 +40,7 @@ import AdminDashboard          from '../pages/admin/AdminDashboard';
 import ManageStores            from '../pages/admin/ManageStores';
 import AdminOrdersPage         from '../pages/admin/AdminOrdersPage';
 import AdminReviewsPage        from '../pages/admin/AdminReviewsPage';
+import ManageUsers             from '../pages/admin/ManageUsers';
 
 const AppRouter = () => {
   return (
@@ -105,6 +106,7 @@ const AppRouter = () => {
                 <Route path="/admin/stores/:id"        element={<ManageStores />} />
                 <Route path="/admin/orders"            element={<AdminOrdersPage />} />
                 <Route path="/admin/reviews"           element={<AdminReviewsPage />} />
+                <Route path="/admin/users"             element={<ManageUsers />} />
               </Route>
 
             </Route>

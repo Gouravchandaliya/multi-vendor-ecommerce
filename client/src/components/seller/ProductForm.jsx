@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import FormInput from '../common/FormInput';
+import productService from '../../features/product/productService';
 
 const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null }) => {
   const [form, setForm] = useState({
@@ -12,6 +13,15 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
     stock: '0',
     isActive: true,
   });
+
+  // AI Assistant state
+  const [aiNotes, setAiNotes]       = useState('');
+  const [aiTone, setAiTone]         = useState('Professional');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiError, setAiError]       = useState(null);
+  const [aiSuccessMsg, setAiSuccessMsg] = useState(null);
+  const [aiHighlights, setAiHighlights] = useState([]);
+  const [aiKeywords, setAiKeywords]   = useState([]);
 
   const [existingImages, setExistingImages] = useState([]); // Array of strings (URLs)
   const [newImages, setNewImages] = useState([]); // Array of File objects
@@ -49,6 +59,44 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
       [name]: type === 'checkbox' ? checked : value,
     }));
     if (formErrors[name]) setFormErrors((p) => ({ ...p, [name]: '' }));
+  };
+
+  // AI Content Generator Trigger
+  const handleGenerateAi = async () => {
+    if (!form.name.trim()) {
+      setFormErrors((p) => ({ ...p, name: 'Please enter a product name first to generate AI content.' }));
+      return;
+    }
+
+    setIsGenerating(true);
+    setAiError(null);
+    setAiSuccessMsg(null);
+
+    try {
+      const content = await productService.generateAiContent({
+        name: form.name.trim(),
+        category: form.category.trim(),
+        brand: form.brand.trim(),
+        notes: aiNotes.trim(),
+        tone: aiTone,
+      });
+
+      // Populate description (if not already custom typed, or append/overwrite after seller confirmation)
+      if (content.description) {
+        setForm((p) => ({
+          ...p,
+          description: content.description,
+        }));
+      }
+
+      setAiHighlights(content.highlights || []);
+      setAiKeywords(content.keywords || []);
+      setAiSuccessMsg('✨ AI content generated successfully! Review and edit the description below before saving.');
+    } catch (err) {
+      setAiError(err.response?.data?.message || 'AI generation failed. You can continue entering product details manually.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -92,9 +140,7 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
   };
 
   const removeNewImage = (idxToRemove) => {
-    // Revoke the object URL
     URL.revokeObjectURL(newPreviews[idxToRemove]);
-
     setNewImages((prev) => prev.filter((_, idx) => idx !== idxToRemove));
     setNewPreviews((prev) => prev.filter((_, idx) => idx !== idxToRemove));
   };
@@ -145,10 +191,8 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
     formData.append('stock', form.stock);
     formData.append('isActive', form.isActive);
 
-    // Send array of existing images
     formData.append('existingImages', JSON.stringify(existingImages));
 
-    // Append new files
     newImages.forEach((file) => {
       formData.append('images', file);
     });
@@ -164,6 +208,7 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
         </div>
       )}
 
+      {/* Basic Information Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
         <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Basic Information</h2>
         
@@ -176,28 +221,6 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
           error={formErrors.name}
           required
         />
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="description" className="text-sm font-medium text-gray-700">
-            Description <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={5}
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Provide a detailed description of features, specifications, and what's in the box..."
-            className={`w-full px-4 py-2.5 rounded-lg border text-sm text-gray-900 placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none
-              ${formErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'}`}
-          />
-          {formErrors.description ? (
-            <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>
-          ) : (
-            <p className="text-xs text-gray-400 text-right">{form.description.length}/2000</p>
-          )}
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
@@ -222,6 +245,127 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
         </div>
       </div>
 
+      {/* ✨ AI Content Generator Assistant Section */}
+      <div className="bg-gradient-to-r from-blue-50/60 to-indigo-50/60 rounded-2xl shadow-sm border border-blue-100 p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-blue-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">✨</span>
+            <div>
+              <h2 className="text-sm font-extrabold text-blue-900">AI Product Content Assistant</h2>
+              <p className="text-[11px] text-blue-700">Generate e-commerce descriptions and search tags from product facts</p>
+            </div>
+          </div>
+          
+          <select
+            value={aiTone}
+            onChange={(e) => setAiTone(e.target.value)}
+            className="px-3 py-1.5 bg-white border border-blue-200 rounded-xl text-xs font-semibold text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="Professional">Tone: Professional</option>
+            <option value="Concise">Tone: Concise</option>
+            <option value="Friendly">Tone: Friendly</option>
+          </select>
+        </div>
+
+        {aiError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+            ⚠️ {aiError}
+          </div>
+        )}
+
+        {aiSuccessMsg && (
+          <div className="p-3 bg-green-50 border border-green-200 text-green-800 text-xs rounded-xl font-semibold">
+            {aiSuccessMsg}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label htmlFor="aiNotes" className="text-xs font-bold text-blue-950 uppercase tracking-wider">
+            Product Features & Specs (Optional facts for AI)
+          </label>
+          <textarea
+            id="aiNotes"
+            rows={2}
+            value={aiNotes}
+            onChange={(e) => setAiNotes(e.target.value)}
+            placeholder="e.g. 40 hour battery, Bluetooth 5.3, active noise cancelling, USB-C fast charging..."
+            className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGenerateAi}
+          disabled={isGenerating}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-2"
+        >
+          {isGenerating ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Generating Content...
+            </>
+          ) : (
+            '✨ Generate Description with AI'
+          )}
+        </button>
+
+        {/* Generated Highlights & Keywords Preview */}
+        {(aiHighlights.length > 0 || aiKeywords.length > 0) && (
+          <div className="bg-white p-4 rounded-xl border border-blue-100 space-y-3 text-xs">
+            {aiHighlights.length > 0 && (
+              <div>
+                <span className="font-bold text-gray-800 block mb-1">Key Highlights Suggested:</span>
+                <ul className="list-disc list-inside text-gray-600 space-y-0.5">
+                  {aiHighlights.map((h, idx) => (
+                    <li key={idx}>{h}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {aiKeywords.length > 0 && (
+              <div>
+                <span className="font-bold text-gray-800 block mb-1">SEO Search Keywords:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {aiKeywords.map((kw, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-semibold text-[10px]">
+                      #{kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Description Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+        <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Product Description</h2>
+
+        <div className="flex flex-col gap-1">
+          <label htmlFor="description" className="text-sm font-medium text-gray-700">
+            Description <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            rows={6}
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Provide a detailed description of features, specifications, and what's in the box..."
+            className={`w-full px-4 py-2.5 rounded-lg border text-sm text-gray-900 placeholder-gray-400
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none
+              ${formErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'}`}
+          />
+          {formErrors.description ? (
+            <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>
+          ) : (
+            <p className="text-xs text-gray-400 text-right">{form.description.length}/2000</p>
+          )}
+        </div>
+      </div>
+
+      {/* Pricing & Inventory Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
         <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Pricing & Inventory</h2>
 
@@ -274,6 +418,7 @@ const ProductForm = ({ initialData = null, onSubmit, isSubmitting, error = null 
         </div>
       </div>
 
+      {/* Product Images Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
         <h2 className="text-base font-bold text-gray-900 border-b border-gray-100 pb-3">Product Images (Max 5)</h2>
         

@@ -30,6 +30,13 @@ const uploadToCloudinary = (file) => {
   });
 };
 
+/**
+ * Helper to safely escape user input for RegExp queries
+ */
+const escapeRegex = (text) => {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 // ─── Create Product ───────────────────────────────────────────────────────────
 const createProduct = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -87,26 +94,29 @@ const createProduct = asyncHandler(async (req, res) => {
 const getSellerProducts = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, search } = req.query;
 
+  const parsedPage  = Math.max(1, parseInt(page, 10) || 1);
+  const parsedLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+
   const filter = { seller: req.user._id };
-  if (search) {
-    filter.name = { $regex: search, $options: 'i' };
+  if (search && typeof search === 'string' && search.trim()) {
+    filter.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
   }
 
-  const skip  = (Number(page) - 1) * Number(limit);
+  const skip  = (parsedPage - 1) * parsedLimit;
   const total = await Product.countDocuments(filter);
   const products = await Product.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(Number(limit));
+    .limit(parsedLimit);
 
   return res.status(200).json(
     new ApiResponse(200, {
       products,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)),
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages: Math.ceil(total / parsedLimit),
       },
     }, 'Seller products fetched')
   );
@@ -206,75 +216,114 @@ const deleteProduct = asyncHandler(async (req, res) => {
 // ─── Public: Get Products (Search, Filter, Sort, Pagination) ─────────────────
 const getPublicProducts = asyncHandler(async (req, res) => {
   const {
-    search, category, brand, minPrice, maxPrice, inStock, sort, page = 1, limit = 12,
+    search, category, brand, minPrice, maxPrice, rating, inStock, sort, page = 1, limit = 12,
   } = req.query;
 
-  // 1. Get approved stores list
+  // 1. Sanitize pagination values safely
+  const parsedPage  = Math.max(1, parseInt(page, 10) || 1);
+  const parsedLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 12));
+
+  // 2. Get approved stores list
   const approvedStores = await Store.find({ status: 'approved' }).select('_id');
   const approvedStoreIds = approvedStores.map((s) => s._id);
 
-  // 2. Build filter (Must be active and belong to an approved store)
+  // 3. Build filter (Must be active and belong to an approved store)
   const filter = {
     isActive: true,
     store: { $in: approvedStoreIds },
   };
 
-  if (search) {
+  // Search filter (Case-insensitive & safe regex escaping)
+  if (search && typeof search === 'string' && search.trim() !== '') {
+    const escapedSearch = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { category: { $regex: search, $options: 'i' } },
-      { brand: { $regex: search, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { category: { $regex: escapedSearch, $options: 'i' } },
+      { brand: { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 
-  if (category) {
-    filter.category = { $regex: new RegExp(`^${category}$`, 'i') };
+  // Category filter
+  if (category && typeof category === 'string' && category.trim() !== '' && category.toLowerCase() !== 'all categories') {
+    filter.category = { $regex: new RegExp(`^${escapeRegex(category.trim())}$`, 'i') };
   }
 
-  if (brand) {
-    filter.brand = { $regex: new RegExp(`^${brand}$`, 'i') };
+  // Brand filter
+  if (brand && typeof brand === 'string' && brand.trim() !== '') {
+    filter.brand = { $regex: new RegExp(`^${escapeRegex(brand.trim())}$`, 'i') };
   }
 
-  if (minPrice !== undefined || maxPrice !== undefined) {
+  // Price Range filter
+  let parsedMin = minPrice !== undefined && minPrice !== '' ? parseFloat(minPrice) : NaN;
+  let parsedMax = maxPrice !== undefined && maxPrice !== '' ? parseFloat(maxPrice) : NaN;
+
+  if (!isNaN(parsedMin) && parsedMin < 0) parsedMin = 0;
+  if (!isNaN(parsedMax) && parsedMax < 0) parsedMax = 0;
+
+  // Gracefully swap if minPrice > maxPrice
+  if (!isNaN(parsedMin) && !isNaN(parsedMax) && parsedMin > parsedMax) {
+    const temp = parsedMin;
+    parsedMin = parsedMax;
+    parsedMax = temp;
+  }
+
+  if (!isNaN(parsedMin) || !isNaN(parsedMax)) {
     filter.price = {};
-    if (minPrice !== undefined && minPrice !== '') filter.price.$gte = Number(minPrice);
-    if (maxPrice !== undefined && maxPrice !== '') filter.price.$lte = Number(maxPrice);
+    if (!isNaN(parsedMin)) filter.price.$gte = parsedMin;
+    if (!isNaN(parsedMax)) filter.price.$lte = parsedMax;
   }
 
+  // Rating Filter (Minimum average rating e.g., 4 = 4★ & above)
+  if (rating !== undefined && rating !== '') {
+    const parsedRating = parseFloat(rating);
+    if (!isNaN(parsedRating) && parsedRating >= 1 && parsedRating <= 5) {
+      filter.ratingsAverage = { $gte: parsedRating };
+    }
+  }
+
+  // Stock Filter
   if (inStock === 'true') {
     filter.stock = { $gt: 0 };
   }
 
-  // 3. Build Sorting
+  // 4. Whitelist Sorting Mapping
   const sortOptions = {};
   if (sort === 'price_asc') {
     sortOptions.price = 1;
   } else if (sort === 'price_desc') {
     sortOptions.price = -1;
+  } else if (sort === 'rating') {
+    sortOptions.ratingsAverage = -1;
+    sortOptions.createdAt = -1;
   } else if (sort === 'name_asc') {
     sortOptions.name = 1;
   } else {
     sortOptions.createdAt = -1; // Default: newest first
   }
 
-  // 4. Query DB
-  const skip  = (Number(page) - 1) * Number(limit);
+  // 5. Query DB
+  const skip  = (parsedPage - 1) * parsedLimit;
   const total = await Product.countDocuments(filter);
+  const totalPages = Math.ceil(total / parsedLimit);
+
   const products = await Product.find(filter)
     .populate('store', 'name slug logo status city country')
     .sort(sortOptions)
     .skip(skip)
-    .limit(Number(limit));
+    .limit(parsedLimit);
 
   return res.status(200).json(
     new ApiResponse(200, {
       products,
       pagination: {
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)),
+        page: parsedPage,
+        limit: parsedLimit,
+        totalProducts: total,
+        total, // preserve total key for existing UI code
+        totalPages,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1,
       },
     }, 'Public products fetched')
   );

@@ -5,6 +5,7 @@ const {
   updateSellerOrderStatus,
   getSellerMetrics,
 } = require('../controllers/sellerOrder.controller');
+const { getSellerAnalytics } = require('../controllers/sellerAnalytics.controller');
 const { verifyToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,6 +14,7 @@ router.use(verifyToken, requireRole('seller', 'admin')); // Seller routes requir
 
 router.get('/', getSellerOrders);
 router.get('/metrics', getSellerMetrics);
+router.get('/analytics', getSellerAnalytics);
 router.get('/:orderId', getSellerOrderById);
 router.patch('/:orderId/status', updateSellerOrderStatus);
 

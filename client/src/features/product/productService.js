@@ -1,7 +1,7 @@
 import api from '../../services/api';
 
 /**
- * productService — all Axios calls for product CRUD & discovery.
+ * productService — all Axios calls for product CRUD, discovery & AI assistant.
  */
 
 // ─── Seller CRUD ──────────────────────────────────────────────────────────────
@@ -35,6 +35,13 @@ const updateProduct = async ({ id, formData }) => {
 const deleteProduct = async (id) => {
   const response = await api.delete(`/products/${id}`);
   return response.data.data;
+};
+
+// ─── Seller AI Assistant ──────────────────────────────────────────────────────
+
+const generateAiContent = async (payload) => {
+  const response = await api.post('/seller/ai/generate-product-content', payload);
+  return response.data.data.content; // { title, description, highlights, keywords }
 };
 
 // ─── Public Discovery ─────────────────────────────────────────────────────────
@@ -77,6 +84,7 @@ const productService = {
   getProductById,
   updateProduct,
   deleteProduct,
+  generateAiContent,
   getPublicProducts,
   getPublicProductBySlug,
   getRelatedProducts,

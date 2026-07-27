@@ -91,12 +91,15 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// Indexes for fast lookup, filtering, and sorting
 productSchema.index({ slug: 1 }, { unique: true });
 productSchema.index({ seller: 1 });
 productSchema.index({ store: 1 });
 productSchema.index({ category: 1 });
 productSchema.index({ brand: 1 });
+productSchema.index({ price: 1 });
+productSchema.index({ ratingsAverage: -1 });
+productSchema.index({ createdAt: -1 });
 
 const Product = mongoose.model('Product', productSchema);
 module.exports = Product;
