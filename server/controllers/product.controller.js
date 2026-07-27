@@ -1,3 +1,4 @@
+const mongoose             = require('mongoose');
 const { validationResult } = require('express-validator');
 const Product              = require('../models/Product.model');
 const Store                = require('../models/Store.model');
@@ -329,9 +330,14 @@ const getPublicProducts = asyncHandler(async (req, res) => {
   );
 });
 
-// ─── Public: Get Product By Slug ──────────────────────────────────────────────
+// ─── Public: Get Product By Slug / ID ─────────────────────────────────────────
 const getPublicProductBySlug = asyncHandler(async (req, res) => {
-  const product = await Product.findOne({ slug: req.params.slug, isActive: true })
+  const isObjectId = mongoose.Types.ObjectId.isValid(req.params.slug);
+  const query = isObjectId
+    ? { $or: [{ slug: req.params.slug }, { _id: req.params.slug }], isActive: true }
+    : { slug: req.params.slug, isActive: true };
+
+  const product = await Product.findOne(query)
     .populate('store', 'name slug logo description city country status')
     .populate('seller', 'name');
 

@@ -176,7 +176,7 @@ const OrderDetailsPage = () => {
 
                             {isDelivered && (
                               <Link
-                                to={`/products/${item.product?.slug || item.product}`}
+                                to={`/products/${item.product?.slug || (typeof item.product === 'object' ? item.product._id : item.product)}`}
                                 className="px-3 py-1 bg-green-50 text-green-800 border border-green-200 hover:bg-green-100 rounded-lg text-xs font-bold transition inline-block ml-auto"
                               >
                                 ✍️ Write a Review

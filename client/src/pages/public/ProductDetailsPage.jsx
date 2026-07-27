@@ -93,7 +93,21 @@ const ProductDetailsPage = () => {
     }
   }, [product?._id, reviewPage, reviewSort, dispatch]);
 
-  if (isLoading || !product) return <PageSpinner />;
+  if (isLoading) return <PageSpinner />;
+
+  if (!product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-4">
+        <Alert type="error" message={error || 'Product not found or unavailable'} />
+        <Link
+          to="/products"
+          className="inline-block px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition"
+        >
+          &larr; Back to Products
+        </Link>
+      </div>
+    );
+  }
 
   const isWishlisted = wishlist.some((p) => (p._id || p) === product._id);
   const hasDiscount  = product.discountPrice && product.discountPrice > 0 && product.discountPrice < product.price;

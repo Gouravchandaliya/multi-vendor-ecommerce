@@ -13,6 +13,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
 
   const total  = await Order.countDocuments(filter);
   const orders = await Order.find(filter)
+    .populate('items.product', 'name slug images price')
     .populate('items.store', 'name slug logo')
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -41,6 +42,7 @@ const getOrderById = asyncHandler(async (req, res) => {
   }
 
   const order = await Order.findOne(query)
+    .populate('items.product', 'name slug images price')
     .populate('items.store', 'name slug logo description city country')
     .populate('items.seller', 'name email');
 
@@ -122,6 +124,7 @@ const getAdminOrders = asyncHandler(async (req, res) => {
   const total  = await Order.countDocuments(query);
   const orders = await Order.find(query)
     .populate('buyer', 'name email')
+    .populate('items.product', 'name slug images price')
     .populate('items.store', 'name slug')
     .sort({ createdAt: -1 })
     .skip(skip)
